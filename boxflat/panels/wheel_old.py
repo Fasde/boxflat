@@ -304,6 +304,7 @@ class OldWheelSettings(SettingsPanel):
         self._current_row.subscribe(self.start_led_rpm_connection)
         self._current_row.add_button("Stop", self.stop_led_rpm_connection)
 
+
     def _change_telemetry(self, value, func):
         telemetry_string = func().get_string()
 
@@ -553,11 +554,13 @@ class OldWheelSettings(SettingsPanel):
             rpm_mode = self._cm.get_setting("wheel-rpm-mode", exclusive=True)
 
             if rpm_mode == 1:
+                # Fixed RPM mode: read the rpm thresholds set in boxflat UI
                 thresholds = [
                     self._cm.get_setting(f"wheel-rpm-value{i+1}", exclusive=True)
                     for i in range(NUM_LEDS)
                 ]
             else:
+                # Percentage RPM mode: calculate the rpm thresholds based on current maximum rpm
                 timings = self._cm.get_setting("wheel-rpm-timings", exclusive=True)
                 if timings is None or len(timings) < NUM_LEDS:
                     timings = self._timings[0]
@@ -572,6 +575,7 @@ class OldWheelSettings(SettingsPanel):
                 if threshold is not None and rpm >= threshold:
                     leds += 1
 
+            # Make each element 1 for each LED that needs to activate
             return (1 << leds) - 1 if leds > 0 else 0
 
         initial_mode = self._cm.get_setting("wheel-rpm-indicator-mode", exclusive=True)

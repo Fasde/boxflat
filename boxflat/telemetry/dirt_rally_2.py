@@ -12,20 +12,19 @@ class DirtRally2(BaseTelemetry):
     PACKET_SIZE = PACKET_FLOATS * 4
     UDP_PORT = 20777 # can be set in the DR2.0 config file
 
+    # Codemasters/EGO telemetry packet floats: engineRate is rad/s, maxRPM is RPM.
+    # We have to convert engineRate back to rpm
+    OFFSET_RPM = 37 * 4
+    OFFSET_CURRENT_MAX_RPM = 61 * 4
+    IDLE_RPM = 63 * 4
+    MAX_GEARS = 65 * 4
+
 
     def __init__(self):
         super().__init__()
         self._udp_socket = None
         self._last_rpm = 0
         self._last_max_rpm = self.DEFAULT_MAX_RPM
-
-        # Codemasters/EGO telemetry packet floats: engineRate is rad/s, maxRPM is RPM.
-        # We have to convert engineRate back to rpm
-        self.OFFSET_RPM = 37 * 4
-        self.OFFSET_CURRENT_MAX_RPM = 61 * 4
-        self.IDLE_RPM = 63 * 4
-        self.MAX_GEARS = 65 * 4
-
 
 
     def connect(self):
