@@ -11,14 +11,18 @@ class BaseTelemetry:
         self.GAME_NAME = type(self).GAME_NAME
         self.source_name = ""
 
+
     def connect(self):
         raise NotImplementedError
+
 
     def is_connected(self):
         raise NotImplementedError
 
+
     def get_rpm(self):
         raise NotImplementedError
+
 
     def close(self):
         raise NotImplementedError

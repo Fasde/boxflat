@@ -23,6 +23,9 @@ class DirtRally2(BaseTelemetry):
         # We have to convert engineRate back to rpm
         self.OFFSET_RPM = 37 * 4
         self.OFFSET_CURRENT_MAX_RPM = 61 * 4
+        self.IDLE_RPM = 63 * 4
+        self.MAX_GEARS = 65 * 4
+
 
 
     def connect(self):
@@ -100,6 +103,7 @@ class DirtRally2(BaseTelemetry):
 
 
     def _engine_rate_to_rpm(self, engine_rate):
+        # convert Radians back to RPM
         return engine_rate * 60 / (2 * math.pi)
 
 
@@ -108,8 +112,8 @@ class DirtRally2(BaseTelemetry):
             try:
                 rpm = struct.unpack_from("=f", packet, offset + self.OFFSET_RPM)[0]
                 max_rpm = struct.unpack_from("=f", packet, offset + self.OFFSET_CURRENT_MAX_RPM)[0]
-                idle_rpm = struct.unpack_from("=f", packet, offset + (63 * 4))[0]
-                max_gears = struct.unpack_from("=f", packet, offset + (65 * 4))[0]
+                idle_rpm = struct.unpack_from("=f", packet, offset + self.IDLE_RPM)[0]
+                max_gears = struct.unpack_from("=f", packet, offset + self.MAX_GEARS)[0]
             except struct.error:
                 continue
 
