@@ -10,20 +10,20 @@ class DirtRally2(BaseTelemetry):
 
     PACKET_FLOATS = 66
     PACKET_SIZE = PACKET_FLOATS * 4
-    UDP_PORT = 20777
+    UDP_PORT = 20777 # can be set in the DR2.0 config file
+
 
     def __init__(self):
         super().__init__()
         self._udp_socket = None
         self._last_rpm = 0
-        self._last_max_rpm = 8000
-        self._packets_received = 0
-        self._packets_rejected = 0
+        self._last_max_rpm = self.DEFAULT_MAX_RPM
 
         # Codemasters/EGO telemetry packet floats: engineRate is rad/s, maxRPM is RPM.
         # We have to convert engineRate back to rpm
         self.OFFSET_RPM = 37 * 4
         self.OFFSET_CURRENT_MAX_RPM = 61 * 4
+
 
     def connect(self):
         if self.is_connected():
@@ -35,14 +35,17 @@ class DirtRally2(BaseTelemetry):
 
         return False
 
+
     def is_connected(self):
         return self._udp_socket is not None
+
 
     def get_rpm(self):
         if self._udp_socket is not None:
             return self._get_udp_rpm()
 
-        return 0, 8000
+        return 0, self.DEFAULT_MAX_RPM
+
 
     def close(self):
         if self._udp_socket is not None:
@@ -51,6 +54,7 @@ class DirtRally2(BaseTelemetry):
             except OSError:
                 pass
             self._udp_socket = None
+
 
     def _ensure_udp_socket(self):
         if self._udp_socket is not None:
@@ -63,11 +67,12 @@ class DirtRally2(BaseTelemetry):
             udp_socket.setblocking(False)
             udp_socket.bind(("", port))
         except (OSError, ValueError) as e:
-            print(f"DiRT Rally 2.0 UDP telemetry bind failed: {e}")
+            print(f"{self.GAME_NAME} UDP telemetry bind failed: {e}")
             return False
 
         self._udp_socket = udp_socket
         return True
+
 
     def _get_udp_rpm(self):
         while True:
@@ -76,27 +81,27 @@ class DirtRally2(BaseTelemetry):
             except BlockingIOError:
                 break
             except OSError as e:
-                print(f"DiRT Rally 2.0 UDP telemetry read failed: {e}")
-                return 0, 8000
+                print(f"{self.GAME_NAME} UDP telemetry read failed: {e}")
+                return 0, self.DEFAULT_MAX_RPM
 
             if len(packet) < self.PACKET_SIZE:
                 continue
 
-            self._packets_received += 1
             rpm_data = self._extract_rpm(packet)
 
             if rpm_data is None:
-                self._packets_rejected += 1
                 continue
 
             rpm, max_rpm = rpm_data
             self._last_rpm = int(self._engine_rate_to_rpm(rpm))
-            self._last_max_rpm = int(max_rpm) if max_rpm > 0 else 8000
+            self._last_max_rpm = int(max_rpm) if max_rpm > 0 else self.DEFAULT_MAX_RPM
 
         return self._last_rpm, self._last_max_rpm
 
+
     def _engine_rate_to_rpm(self, engine_rate):
         return engine_rate * 60 / (2 * math.pi)
+
 
     def _extract_rpm(self, packet):
         for offset in range(0, len(packet) - self.PACKET_SIZE + 1, 4):
@@ -108,6 +113,10 @@ class DirtRally2(BaseTelemetry):
             except struct.error:
                 continue
 
+            # If any of the following 4 checks fail, we are not reading the data at the correct spot in the file, so we
+            # try at the next spot
+            # So we can use these 4 checks (with values we dont need further on) to validate that we are reading the
+            # rpm data at the correct spot and not read anything that looks rpm-y but isnt
             if not 0 <= rpm <= 20000:
                 continue
 

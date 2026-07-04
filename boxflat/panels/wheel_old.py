@@ -580,6 +580,7 @@ class OldWheelSettings(SettingsPanel):
         last_debug_print = 0
 
         try:
+            # Outer loop for connecting to the telemetry and retrying if it is not there/fails/disconnects
             while self._led_rpm_running:
                 # Keep wheel in RPM indicator mode
                 now = time.monotonic()
@@ -587,6 +588,7 @@ class OldWheelSettings(SettingsPanel):
                     self._cm.set_setting(1, "wheel-rpm-indicator-mode")
                     last_mode_refresh = now
 
+                # Wait for active game connection
                 if not self.telemetry.connect():
                     self._cm.set_setting(0, "wheel-old-send-telemetry")
                     print(f"Waiting for {self.telemetry.GAME_NAME} telemetry...")
@@ -595,6 +597,7 @@ class OldWheelSettings(SettingsPanel):
 
                 print(f"Connected to {self.telemetry.GAME_NAME} telemetry at {self.telemetry.source_name}.")
 
+                # Inner loop for sending data to wheel once telemetry is connected
                 while self._led_rpm_running:
                     try:
                         # Re-check mode every 2 seconds
@@ -625,6 +628,7 @@ class OldWheelSettings(SettingsPanel):
                         self._cm.set_setting(0, "wheel-old-send-telemetry")
                         self.telemetry.close()
                         time.sleep(1)
+                        # Break out of inner loop so that the outer loop retries connecting
                         break
 
         finally:
